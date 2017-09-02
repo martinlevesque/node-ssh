@@ -96,7 +96,7 @@ class SSH {
     }
     return output
   }
-  async execCommand(givenCommand: string, options: { cwd?: string, stdin?: string, options?: Object } = {}): Promise<{ stdout: string, stderr: string, code: number, signal: ?string }> {
+  async execCommand(givenCommand: string, options: { cwd?: string, cbStdout?: Object, cbStderr?: Object, stdin?: string, options?: Object } = {}): Promise<{ stdout: string, stderr: string, code: number, signal: ?string }> {
     let command = givenCommand
     const connection = this.connection
     invariant(connection, 'Not connected to server')
@@ -114,9 +114,17 @@ class SSH {
       connection.exec(command, options.options || {}, Helpers.generateCallback(function(stream) {
         stream.on('data', function(chunk) {
           output.stdout.push(chunk)
+
+          if (options.cbStdout) {
+            options.cbStdout(chunk);
+          }
         })
         stream.stderr.on('data', function(chunk) {
           output.stderr.push(chunk)
+
+          if (options.cbStderr) {
+            options.cbStderr(chunk);
+          }
         })
         if (options.stdin) {
           stream.write(options.stdin)
